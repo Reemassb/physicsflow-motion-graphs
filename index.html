@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PhysicsFlow — Motion Graphs Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sky: #eaf6ff;
+  --white: #ffffff;
+  --navy: #17233d;
+  --ink: #1e293b;
+  --muted: #64748b;
+  --border: #cbd5e1;
+  --teal: #00a896;
+  --teal-light: #defaf5;
+  --amber: #f59e0b;
+  --amber-light: #fff3cf;
+  --coral: #ef4444;
+  --coral-light: #ffe4e4;
+  --blue: #2563eb;
+  --blue-light: #dbeafe;
+  --purple: #7c3aed;
+  --purple-light: #ede9fe;
+  --green: #16a34a;
+  --green-light: #dcfce7;
+  --gray-light: #f8fafc;
+  --mono: 'Space Mono', monospace;
+  --sans: 'Nunito', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  min-height: 100vh;
+  font-family: var(--sans);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(0,168,150,0.16), transparent 32%),
+    radial-gradient(circle at 85% 10%, rgba(37,99,235,0.12), transparent 28%),
+    var(--sky);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(23,35,61,0.18) 1px, transparent 1px);
+  background-size: 26px 26px;
+  pointer-events: none;
+  opacity: 0.45;
+}
+button, input { font: inherit; }
+.shell {
+  position: relative;
+  z-index: 1;
+  width: min(1060px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 24px 0 48px;
+}
+.hero {
+  background: var(--white);
+  border: 3px solid var(--navy);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 6px 6px 0 var(--navy);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.logo {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--navy);
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--teal-light), var(--blue-light));
+  font-size: 34px;
+  box-shadow: 3px 3px 0 var(--navy);
+}
+.hero h1 {
+  font-size: clamp(24px, 4vw, 40px);
+  line-height: 1;
+  color: var(--navy);
+  letter-spacing: -1.2px;
+  font-weight: 900;
+}
+.hero p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 15px;
+}
+.score-card {
+  border: 2.5px solid var(--navy);
+  border-radius: 16px;
+  padding: 10px 14px;
+  min-width: 130px;
+  text-align: center;
+  background: var(--amber-light);
+  box-shadow: 3px 3px 0 var(--navy);
+}
+.score-card .small { font-size: 11px; color: var(--muted); font-weight: 900; letter-spacing: .7px; text-transform: uppercase; }
+.score-card .big { font: 900 24px var(--mono); color: var(--navy); }
+.tabs {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.tab-btn {
+  background: var(--white);
+  color: var(--navy);
+  border: 2.5px solid var(--navy);
+  border-radius: 14px;
+  padding: 10px 13px;
+  font-weight: 900;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--navy);
+  transition: 0.15s ease;
+}
+.tab-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--navy); }
+.tab-btn.active { color: #fff; }
+.tab-btn[data-color="teal"].active { background: var(--teal); }
+.tab-btn[data-color="amber"].active { background: var(--amber); }
+.tab-btn[data-color="coral"].active { background: var(--coral); }
+.tab-btn[data-color="blue"].active { background: var(--blue); }
+.tab-btn[data-color="purple"].active { background: var(--purple); }
+.panel { display: none; }
+.panel.active { display: block; animation: pop .18s ease; }
+@keyframes pop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.info-banner {
+  border: 2.5px solid var(--navy);
+  border-radius: 20px;
+  padding: 14px 16px;
+  box-shadow: 4px 4px 0 var(--navy);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.info-banner .icon { font-size: 28px; line-height: 1; }
+.info-banner h2 { font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: .9px; margin-bottom: 4px; }
+.info-banner p { font-size: 14px; line-height: 1.45; font-weight: 700; }
+.b-teal { background: var(--teal-light); } .b-teal h2 { color: var(--teal); }
+.b-amber { background: var(--amber-light); } .b-amber h2 { color: var(--amber); }
+.b-coral { background: var(--coral-light); } .b-coral h2 { color: var(--coral); }
+.b-blue { background: var(--blue-light); } .b-blue h2 { color: var(--blue); }
+.b-purple { background: var(--purple-light); } .b-purple h2 { color: var(--purple); }
+.grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 16px; align-items: start; }
+.card {
+  background: var(--white);
+  border: 2.5px solid var(--navy);
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: 4px 4px 0 var(--navy);
+}
+.card h3 {
+  color: var(--navy);
+  font-size: 18px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+.leg-item { display: flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 900; font-size: 12px; }
+.leg-line { width: 26px; height: 4px; border-radius: 5px; }
+.canvas-wrap { width: 100%; position: relative; }
+canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  background: #fbfdff;
+}
+.controls { display: grid; gap: 12px; margin-top: 14px; }
+.ctrl-row { display: grid; grid-template-columns: 150px 1fr 92px; gap: 10px; align-items: center; }
+.ctrl-label { font-weight: 900; color: var(--navy); font-size: 13px; }
+.ctrl-val { font: 900 13px var(--mono); color: var(--navy); text-align: right; }
+input[type="range"] { width: 100%; accent-color: var(--teal); cursor: pointer; }
+.select-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+.choice-btn {
+  border: 2px solid var(--navy);
+  border-radius: 13px;
+  background: var(--gray-light);
+  padding: 9px;
+  cursor: pointer;
+  font-weight: 900;
+  color: var(--navy);
+  box-shadow: 2px 2px 0 var(--navy);
+}
+.choice-btn.active { background: var(--purple); color: #fff; }
+.obs-box {
+  border: 2px dashed var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  background: #f8fafc;
+  margin-top: 14px;
+}
+.obs-box h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .9px; color: var(--muted); font-weight: 900; margin-bottom: 7px; }
+.obs-box p { font-size: 14px; line-height: 1.5; font-weight: 700; }
+.formula {
+  background: var(--navy);
+  color: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 12px;
+  font: 700 13px var(--mono);
+  line-height: 1.55;
+}
+.quiz h3 { display:flex; align-items:center; gap: 8px; }
+.question { border-top: 1.5px dashed var(--border); padding-top: 12px; margin-top: 12px; }
+.question:first-of-type { border-top: 0; padding-top: 0; }
+.q-text { font-weight: 900; font-size: 14px; line-height: 1.45; margin-bottom: 9px; }
+.q-options { display: grid; gap: 7px; }
+.q-option {
+  width: 100%;
+  text-align: left;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--gray-light);
+  padding: 9px 10px;
+  cursor: pointer;
+  font-weight: 800;
+  color: var(--ink);
+  transition: .12s;
+}
+.q-option:hover:not(:disabled) { border-color: var(--navy); background: #fff; }
+.q-option.correct { background: var(--green-light); border-color: var(--green); color: #14532d; }
+.q-option.wrong { background: var(--coral-light); border-color: var(--coral); color: #7f1d1d; }
+.q-option:disabled { cursor: default; }
+.feedback {
+  display: none;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.feedback.show.ok { display:block; color:#14532d; background:var(--green-light); border: 1.5px solid var(--green); }
+.feedback.show.no { display:block; color:#7f1d1d; background:var(--coral-light); border: 1.5px solid var(--coral); }
+.badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--blue);
+  color: #fff;
+  border: 2px solid var(--navy);
+  border-radius: 13px;
+  padding: 8px 12px;
+  box-shadow: 2px 2px 0 var(--navy);
+  font: 900 13px var(--mono);
+  text-align: center;
+}
+.story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.story-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.stage-btn {
+  border: 2px solid var(--navy);
+  border-radius: 14px;
+  background: #fff;
+  padding: 9px 6px;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--navy);
+}
+.stage-btn.active { background: var(--purple); color: #fff; }
+.table-mini { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; overflow: hidden; border-radius: 12px; }
+.table-mini th, .table-mini td { border: 1.5px solid var(--border); padding: 7px; text-align: center; }
+.table-mini th { background: var(--purple-light); color: var(--navy); font-weight: 900; }
+.footer-note {
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+  margin-top: 22px;
+  font-size: 12px;
+}
+@media (max-width: 820px) {
+  .hero { grid-template-columns: auto 1fr; }
+  .score-card { grid-column: 1 / -1; }
+  .grid { grid-template-columns: 1fr; }
+  .ctrl-row { grid-template-columns: 1fr; gap: 5px; }
+  .ctrl-val { text-align: left; }
+  .story-grid { grid-template-columns: 1fr; }
+  .story-controls { grid-template-columns: repeat(2, 1fr); }
+}
+@media print {
+  body::before, .tabs, .score-card { display:none; }
+  .panel { display:block !important; page-break-after: always; }
+  .shell { width:100%; padding:0; }
+  .card, .hero, .info-banner { box-shadow:none; }
+}
+</style>
+
+<style>
+#passwordOverlay{
+position:fixed;
+inset:0;
+background:linear-gradient(135deg,#dff6ff,#eef2ff);
+display:flex;
+align-items:center;
+justify-content:center;
+z-index:99999;
+font-family:'Nunito',sans-serif;
+}
+#loginCard{
+background:white;
+padding:32px;
+border-radius:24px;
+border:4px solid #17233d;
+box-shadow:8px 8px 0 #17233d;
+width:min(420px,90vw);
+text-align:center;
+}
+#loginCard h1{
+color:#17233d;
+font-size:32px;
+margin-bottom:10px;
+font-weight:900;
+}
+#loginCard p{
+color:#475569;
+font-weight:700;
+margin-bottom:18px;
+line-height:1.5;
+}
+#passwordInput{
+width:100%;
+padding:14px;
+border-radius:14px;
+border:2px solid #17233d;
+font-size:16px;
+font-weight:700;
+margin-bottom:14px;
+}
+#unlockBtn{
+width:100%;
+padding:14px;
+border:none;
+border-radius:14px;
+background:#2563eb;
+color:white;
+font-size:16px;
+font-weight:900;
+cursor:pointer;
+}
+#unlockBtn:hover{
+background:#1d4ed8;
+}
+#errorMsg{
+margin-top:12px;
+color:#dc2626;
+font-weight:800;
+display:none;
+}
+.smallNote{
+margin-top:14px;
+font-size:12px;
+color:#64748b;
+font-weight:700;
+}
+</style>
+
+</head>
+<body>
+
+<div id="passwordOverlay">
+  <div id="loginCard">
+    <div style="font-size:54px;">📊</div>
+    <h1>PhysicsFlow</h1>
+    <p>Interactive Motion Graphs Lab<br>Enter the teacher password to unlock the app.</p>
+    <input type="password" id="passwordInput" placeholder="Enter password">
+    <button id="unlockBtn" onclick="unlockApp()">Unlock App</button>
+    <div id="errorMsg">Incorrect password. Please check your Teacher Guide.</div>
+    <div class="smallNote">
+      Password access is remembered on this device.
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+  <header class="hero">
+    <div class="logo">📊</div>
+    <div>
+      <h1>PhysicsFlow — Motion Graphs Lab</h1>
+      <p>Explore position–time, velocity–time, acceleration, displacement area, and multi-stage motion stories.</p>
+    </div>
+    <div class="score-card">
+      <div class="small">Quiz Score</div>
+      <div class="big"><span id="score">0</span>/<span id="total">15</span></div>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Motion graph sections">
+    <button class="tab-btn active" data-color="teal" onclick="switchTab(1, this)">🚗 1 · Position–Time</button>
+    <button class="tab-btn" data-color="amber" onclick="switchTab(2, this)">📈 2 · Speed & Slope</button>
+    <button class="tab-btn" data-color="coral" onclick="switchTab(3, this)">⚡ 3 · Velocity–Time</button>
+    <button class="tab-btn" data-color="blue" onclick="switchTab(4, this)">📐 4 · Area = Displacement</button>
+    <button class="tab-btn" data-color="purple" onclick="switchTab(5, this)">🎮 5 · Build a Motion Story</button>
+  </nav>
+
+  <section id="p1" class="panel active">
+    <div class="info-banner b-teal"><div class="icon">💡</div><div><h2>Try it</h2><p>Change the final position and time. The graph shows motion from the starting position to the final position.</p></div></div>
+    <div class="grid">
+      <div class="card">
+        <h3>Position–Time Graph: slope = velocity</h3>
+        <div class="legend"><div class="leg-item"><span class="leg-line" style="background:var(--teal)"></span>x–t graph</div><div class="leg-item"><span class="leg-line" style="background:#94a3b8"></span>starting point</div></div>
+        <canvas id="c1" height="300"></canvas>
+        <div class="controls">
+          <div class="ctrl-row"><label class="ctrl-label" for="p1Start">Starting position</label><input id="p1Start" type="range" min="-40" max="40" value="0" oninput="update1()"><div class="ctrl-val" id="p1StartVal">0 m</div></div>
+          <div class="ctrl-row"><label class="ctrl-label" for="p1End">Final position</label><input id="p1End" type="range" min="-40" max="100" value="40" oninput="update1()"><div class="ctrl-val" id="p1EndVal">40 m</div></div>
+          <div class="ctrl-row"><label class="ctrl-label" for="p1Time">Time elapsed</label><input id="p1Time" type="range" min="1" max="10" value="5" oninput="update1()"><div class="ctrl-val" id="p1TimeVal">5 s</div></div>
+        </div>
+        <div class="obs-box"><h4>Observe</h4><p id="obs1"></p></div>
+      </div>
+      <div class="card quiz" id="quiz1">
+        <h3>📝 Checkpoint</h3>
+        <div class="question" data-q="q1"><div class="q-text">1. The slope of a position–time graph gives the object's...</div><div class="q-options"><button class="q-option" onclick="answer('q1',this,false)">A. acceleration</button><button class="q-option" onclick="answer('q1',this,true)">B. velocity</button><button class="q-option" onclick="answer('q1',this,false)">C. mass</button></div><div class="feedback" id="fb-q1"></div></div>
+        <div class="question" data-q="q2"><div class="q-text">2. A horizontal position–time line means...</div><div class="q-options"><button class="q-option" onclick="answer('q2',this,true)">A. position is constant</button><button class="q-option" onclick="answer('q2',this,false)">B. acceleration is high</button><button class="q-option" onclick="answer('q2',this,false)">C. speed is increasing</button></div><div class="feedback" id="fb-q2"></div></div>
+        <div class="question" data-q="q3"><div class="q-text">3. A negative slope on an x–t graph means the object moves...</div><div class="q-options"><button class="q-option" onclick="answer('q3',this,false)">A. faster forward</button><button class="q-option" onclick="answer('q3',this,true)">B. in the negative direction</button><button class="q-option" onclick="answer('q3',this,false)">C. with zero velocity</button></div><div class="feedback" id="fb-q3"></div></div>
+        <div class="formula">velocity = slope = Δx / Δt</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="p2" class="panel">
+    <div class="info-banner b-amber"><div class="icon">📈</div><div><h2>Fixed physics wording</h2><p>This section correctly shows an <b>position–time graph</b>. The steeper the line, the greater the speed.</p></div></div>
+    <div class="grid">
+      <div class="card">
+        <h3>Speed and Slope on an x–t Graph</h3>
+        <div class="legend"><div class="leg-item"><span class="leg-line" style="background:var(--amber)"></span>selected x–t line</div></div>
+        <canvas id="c2" height="300"></canvas>
+        <div class="controls"><div class="ctrl-row"><label class="ctrl-label" for="p2Speed">Constant speed</label><input id="p2Speed" type="range" min="0" max="15" step="0.5" value="6" oninput="update2()"><div class="ctrl-val" id="p2SpeedVal">6.0 m/s</div></div></div>
+        <div class="obs-box"><h4>Observe</h4><p id="obs2"></p></div>
+      </div>
+      <div class="card quiz">
+        <h3>📝 Checkpoint</h3>
+        <div class="question" data-q="q4"><div class="q-text">1. Higher speed on a position–time graph produces a...</div><div class="q-options"><button class="q-option" onclick="answer('q4',this,false)">A. flatter line</button><button class="q-option" onclick="answer('q4',this,true)">B. steeper line</button><button class="q-option" onclick="answer('q4',this,false)">C. vertical line only</button></div><div class="feedback" id="fb-q4"></div></div>
+        <div class="question" data-q="q5"><div class="q-text">2. If speed = 0, the x–t graph is...</div><div class="q-options"><button class="q-option" onclick="answer('q5',this,true)">A. horizontal</button><button class="q-option" onclick="answer('q5',this,false)">B. steep and rising</button><button class="q-option" onclick="answer('q5',this,false)">C. a parabola</button></div><div class="feedback" id="fb-q5"></div></div>
+        <div class="question" data-q="q6"><div class="q-text">3. An object moves 30 m in 6 s. Its speed is...</div><div class="q-options"><button class="q-option" onclick="answer('q6',this,false)">A. 180 m/s</button><button class="q-option" onclick="answer('q6',this,true)">B. 5 m/s</button><button class="q-option" onclick="answer('q6',this,false)">C. 0.2 m/s</button></div><div class="feedback" id="fb-q6"></div></div>
+        <div class="formula">speed = distance / time<br>For constant motion, slope is constant.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="p3" class="panel">
+    <div class="info-banner b-coral"><div class="icon">⚡</div><div><h2>Velocity–time graph</h2><p>Change the acceleration. The slope of the velocity–time graph is acceleration.</p></div></div>
+    <div class="grid">
+      <div class="card">
+        <h3>Velocity–Time Graph: slope = acceleration</h3>
+        <div class="legend"><div class="leg-item"><span class="leg-line" style="background:var(--coral)"></span>selected v–t line</div></div>
+        <canvas id="c3" height="300"></canvas>
+        <div class="controls">
+          <div class="ctrl-row"><label class="ctrl-label" for="p3u">Initial velocity</label><input id="p3u" type="range" min="0" max="12" step="0.5" value="0" oninput="update3()"><div class="ctrl-val" id="p3uVal">0.0 m/s</div></div>
+          <div class="ctrl-row"><label class="ctrl-label" for="p3a">Acceleration</label><input id="p3a" type="range" min="-3" max="5" step="0.25" value="2" oninput="update3()"><div class="ctrl-val" id="p3aVal">2.00 m/s²</div></div>
+        </div>
+        <div class="obs-box"><h4>Observe</h4><p id="obs3"></p></div>
+      </div>
+      <div class="card quiz">
+        <h3>📝 Checkpoint</h3>
+        <div class="question" data-q="q7"><div class="q-text">1. The slope of a velocity–time graph represents...</div><div class="q-options"><button class="q-option" onclick="answer('q7',this,true)">A. acceleration</button><button class="q-option" onclick="answer('q7',this,false)">B. displacement</button><button class="q-option" onclick="answer('q7',this,false)">C. position</button></div><div class="feedback" id="fb-q7"></div></div>
+        <div class="question" data-q="q8"><div class="q-text">2. A downward sloping v–t line means...</div><div class="q-options"><button class="q-option" onclick="answer('q8',this,false)">A. velocity is constant</button><button class="q-option" onclick="answer('q8',this,true)">B. acceleration is negative</button><button class="q-option" onclick="answer('q8',this,false)">C. position is zero</button></div><div class="feedback" id="fb-q8"></div></div>
+        <div class="question" data-q="q9"><div class="q-text">3. Starting from rest, a = 3 m/s² for 4 s gives v =...</div><div class="q-options"><button class="q-option" onclick="answer('q9',this,false)">A. 7 m/s</button><button class="q-option" onclick="answer('q9',this,true)">B. 12 m/s</button><button class="q-option" onclick="answer('q9',this,false)">C. 3 m/s</button></div><div class="feedback" id="fb-q9"></div></div>
+        <div class="formula">v = u + at<br>acceleration = Δv / Δt</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="p4" class="panel">
+    <div class="info-banner b-blue"><div class="icon">📐</div><div><h2>Area under v–t graph</h2><p>Choose a <b>rectangle</b> for constant velocity or a <b>triangle</b> for motion that starts from rest and accelerates to the selected velocity.</p></div></div>
+    <div class="grid">
+      <div class="card">
+        <h3>Displacement from a Velocity–Time Graph</h3>
+        <div class="legend"><div class="leg-item"><span class="leg-line" style="background:var(--blue)"></span>velocity</div><div class="leg-item"><span class="leg-line" style="height:12px;background:rgba(37,99,235,.28)"></span>area = displacement</div></div>
+        <div class="canvas-wrap"><canvas id="c4" height="300"></canvas><div class="badge" id="badge4">0 m</div></div>
+        <div class="controls"><div class="ctrl-row"><label class="ctrl-label" for="p4shape">Area shape</label><select id="p4shape" onchange="update4()" style="font:800 14px var(--sans); padding:8px 10px; border:2px solid var(--navy); border-radius:12px; background:white; color:var(--navy);"><option value="rectangle">Rectangle: constant velocity</option><option value="triangle">Triangle: starts from rest</option></select><div class="ctrl-val" id="p4shapeVal">rectangle</div></div><div class="ctrl-row"><label class="ctrl-label" for="p4v">Final / constant velocity</label><input id="p4v" type="range" min="-10" max="12" step="1" value="6" oninput="update4()"><div class="ctrl-val" id="p4vVal">6 m/s</div></div><div class="ctrl-row"><label class="ctrl-label" for="p4t">Time</label><input id="p4t" type="range" min="1" max="10" step="1" value="5" oninput="update4()"><div class="ctrl-val" id="p4tVal">5 s</div></div></div>
+        <div class="obs-box"><h4>Observe</h4><p id="obs4"></p></div>
+      </div>
+      <div class="card quiz">
+        <h3>📝 Checkpoint</h3>
+        <div class="question" data-q="q10"><div class="q-text">1. Area under a velocity–time graph gives...</div><div class="q-options"><button class="q-option" onclick="answer('q10',this,false)">A. acceleration</button><button class="q-option" onclick="answer('q10',this,true)">B. displacement</button><button class="q-option" onclick="answer('q10',this,false)">C. mass</button></div><div class="feedback" id="fb-q10"></div></div>
+        <div class="question" data-q="q11"><div class="q-text">2. v = 8 m/s for 5 s gives displacement...</div><div class="q-options"><button class="q-option" onclick="answer('q11',this,false)">A. 13 m</button><button class="q-option" onclick="answer('q11',this,true)">B. 40 m</button><button class="q-option" onclick="answer('q11',this,false)">C. 1.6 m</button></div><div class="feedback" id="fb-q11"></div></div>
+        <div class="question" data-q="q12"><div class="q-text">3. If velocity is negative, the displacement is...</div><div class="q-options"><button class="q-option" onclick="answer('q12',this,true)">A. negative</button><button class="q-option" onclick="answer('q12',this,false)">B. always positive</button><button class="q-option" onclick="answer('q12',this,false)">C. zero</button></div><div class="feedback" id="fb-q12"></div></div>
+        <div class="formula">displacement = area under v–t graph<br>Rectangle: Δx = vt<br>Triangle: Δx = ½vt</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="p5" class="panel">
+    <div class="info-banner b-purple"><div class="icon">🎮</div><div><h2>Real build mode</h2><p>Use the sliders to build a 4-stage motion story. Each velocity slider directly changes both the x–t graph and the v–t graph.</p></div></div>
+    <div class="card">
+      <h3>Build a Motion Story</h3>
+      <div class="story-controls">
+        <button class="stage-btn active" onclick="selectPreset(0,this)">Preset A<br>forward-stop-reverse</button>
+        <button class="stage-btn" onclick="selectPreset(1,this)">Preset B<br>speeding up</button>
+        <button class="stage-btn" onclick="selectPreset(2,this)">Preset C<br>negative motion</button>
+        <button class="stage-btn" onclick="selectPreset(3,this)">Preset D<br>return home</button>
+      </div>
+      <div class="controls" style="margin-bottom:14px">
+        <div class="ctrl-row"><label class="ctrl-label" for="p5v1">Stage 1 velocity</label><input id="p5v1" type="range" min="-8" max="10" step="1" value="3" oninput="update5()"><div class="ctrl-val" id="p5v1Val">3 m/s</div></div>
+        <div class="ctrl-row"><label class="ctrl-label" for="p5v2">Stage 2 velocity</label><input id="p5v2" type="range" min="-8" max="10" step="1" value="0" oninput="update5()"><div class="ctrl-val" id="p5v2Val">0 m/s</div></div>
+        <div class="ctrl-row"><label class="ctrl-label" for="p5v3">Stage 3 velocity</label><input id="p5v3" type="range" min="-8" max="10" step="1" value="6" oninput="update5()"><div class="ctrl-val" id="p5v3Val">6 m/s</div></div>
+        <div class="ctrl-row"><label class="ctrl-label" for="p5v4">Stage 4 velocity</label><input id="p5v4" type="range" min="-8" max="10" step="1" value="-4" oninput="update5()"><div class="ctrl-val" id="p5v4Val">-4 m/s</div></div>
+      </div>
+      <div class="story-grid">
+        <div><div class="legend"><div class="leg-item"><span class="leg-line" style="background:var(--purple)"></span>x–t graph</div></div><canvas id="c5x" height="270"></canvas></div>
+        <div><div class="legend"><div class="leg-item"><span class="leg-line" style="background:var(--amber)"></span>v–t graph</div></div><canvas id="c5v" height="270"></canvas></div>
+      </div>
+      <table class="table-mini" id="storyTable"></table>
+      <div class="obs-box"><h4>Observe</h4><p id="obs5"></p></div>
+    </div>
+    <div class="grid" style="margin-top:16px">
+      <div class="card quiz">
+        <h3>📝 Checkpoint</h3>
+        <div class="question" data-q="q13"><div class="q-text">1. When velocity is zero, the x–t graph is...</div><div class="q-options"><button class="q-option" onclick="answer('q13',this,true)">A. horizontal</button><button class="q-option" onclick="answer('q13',this,false)">B. always vertical</button><button class="q-option" onclick="answer('q13',this,false)">C. curved upward</button></div><div class="feedback" id="fb-q13"></div></div>
+        <div class="question" data-q="q14"><div class="q-text">2. Negative velocity appears on a v–t graph...</div><div class="q-options"><button class="q-option" onclick="answer('q14',this,false)">A. above the time axis</button><button class="q-option" onclick="answer('q14',this,true)">B. below the time axis</button><button class="q-option" onclick="answer('q14',this,false)">C. only as a dotted line</button></div><div class="feedback" id="fb-q14"></div></div>
+        <div class="question" data-q="q15"><div class="q-text">3. A steeper positive x–t section means...</div><div class="q-options"><button class="q-option" onclick="answer('q15',this,false)">A. lower positive velocity</button><button class="q-option" onclick="answer('q15',this,true)">B. higher positive velocity</button><button class="q-option" onclick="answer('q15',this,false)">C. zero displacement</button></div><div class="feedback" id="fb-q15"></div></div>
+      </div>
+      <div class="card"><h3>Student task</h3><div class="obs-box" style="margin-top:0"><h4>Write your explanation</h4><p>Describe each stage using the words <b>positive velocity</b>, <b>negative velocity</b>, <b>zero velocity</b>, <b>steeper slope</b>, and <b>displacement</b>.</p></div><div class="formula">On x–t graphs: slope = velocity<br>On v–t graphs: area = displacement</div></div>
+    </div>
+  </section>
+
+  <p class="footer-note">PhysicsFlow Motion Graphs Lab · Fixed slider graphs · Rectangle/Triangle area mode</p>
+</div>
+
+<script>
+const COLORS = {
+  navy: '#17233d', muted: '#64748b', grid: 'rgba(23,35,61,0.08)',
+  teal: '#00a896', amber: '#f59e0b', coral: '#ef4444', blue: '#2563eb', purple: '#7c3aed', green: '#16a34a'
+};
+const MONO = "'Space Mono', monospace";
+let score = 0;
+const answered = new Set();
+
+function setupCanvas(id) {
+  const c = document.getElementById(id);
+  const holder = c.parentElement;
+  const holderWidth = holder ? holder.getBoundingClientRect().width : 0;
+
+  // Important fix: use CSS-pixel canvas sizing only.
+  // The earlier high-DPI resizing could make the drawing appear huge after slider changes
+  // on some browsers/devices because the canvas was repeatedly scaled.
+  const rectW = Math.max(320, Math.min(Math.round(holderWidth || 720), 960));
+  const rectH = Number(c.getAttribute('height')) || 260;
+
+  if (c.width !== rectW) c.width = rectW;
+  if (c.height !== rectH) c.height = rectH;
+  c.style.width = '100%';
+  c.style.maxWidth = rectW + 'px';
+  c.style.height = rectH + 'px';
+
+  const ctx = c.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, rectW, rectH);
+  return { c, ctx, W: rectW, H: rectH };
+}
+function niceRange(min, max) {
+  if (min === max) { min -= 1; max += 1; }
+  const pad = Math.max((max - min) * 0.14, 2);
+  return [Math.floor(min - pad), Math.ceil(max + pad)];
+}
+function drawAxes(ctx, W, H, opt) {
+  const pad = opt.pad ?? 46;
+  const xMin = opt.xMin ?? 0, xMax = opt.xMax ?? 10;
+  const yMin = opt.yMin, yMax = opt.yMax;
+  const ox = pad, oy = H - pad;
+  const gw = W - 2 * pad, gh = H - 2 * pad;
+  const sx = gw / (xMax - xMin), sy = gh / (yMax - yMin);
+  function X(t) { return ox + (t - xMin) * sx; }
+  function Y(v) { return oy - (v - yMin) * sy; }
+
+  ctx.lineWidth = 1; ctx.strokeStyle = COLORS.grid; ctx.setLineDash([4, 5]);
+  for (let i = 0; i <= 10; i++) { const x = ox + gw * i / 10; ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, oy); ctx.stroke(); }
+  for (let i = 0; i <= 8; i++) { const y = pad + gh * i / 8; ctx.beginPath(); ctx.moveTo(ox, y); ctx.lineTo(W - pad, y); ctx.stroke(); }
+  ctx.setLineDash([]);
+
+  if (yMin < 0 && yMax > 0) {
+    ctx.strokeStyle = 'rgba(23,35,61,.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(ox, Y(0)); ctx.lineTo(W - pad, Y(0)); ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.strokeStyle = COLORS.navy; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(ox, pad - 4); ctx.lineTo(ox, oy); ctx.lineTo(W - pad + 5, oy); ctx.stroke();
+
+  ctx.fillStyle = COLORS.muted; ctx.font = `bold 11px ${MONO}`; ctx.textAlign = 'center';
+  ctx.fillText(opt.xLabel || 't (s)', W - pad + 17, oy + 5);
+  ctx.save(); ctx.translate(pad - 23, pad + 18); ctx.rotate(-Math.PI / 2); ctx.fillText(opt.yLabel || 'y', 0, 0); ctx.restore();
+
+  ctx.textAlign = 'right';
+  const ticks = [yMin, 0, yMax].filter((v, i, arr) => v >= yMin && v <= yMax && arr.indexOf(v) === i);
+  ticks.forEach(v => { ctx.fillText(String(Math.round(v * 10) / 10), ox - 6, Y(v) + 4); });
+  ctx.textAlign = 'center';
+  [xMin, (xMin + xMax)/2, xMax].forEach(t => ctx.fillText(String(Math.round(t * 10) / 10), X(t), oy + 17));
+
+  return { X, Y, xMin, xMax, yMin, yMax, ox, oy, pad, gw, gh };
+}
+function drawLine(ctx, ax, points, color, width = 3) {
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+  points.forEach(([t, y], i) => i ? ctx.lineTo(ax.X(t), ax.Y(y)) : ctx.moveTo(ax.X(t), ax.Y(y)));
+  ctx.stroke();
+}
+function drawDot(ctx, ax, t, y, color) { ctx.beginPath(); ctx.arc(ax.X(t), ax.Y(y), 5.5, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); }
+function drawArea(ctx, ax, points, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(ax.X(points[0][0]), ax.Y(0));
+  points.forEach(([t, y]) => ctx.lineTo(ax.X(t), ax.Y(y)));
+  ctx.lineTo(ax.X(points.at(-1)[0]), ax.Y(0));
+  ctx.closePath(); ctx.fill();
+}
+function label(ctx, x, y, text, color = COLORS.navy, align = 'center') {
+  ctx.fillStyle = color; ctx.font = `900 12px ${MONO}`; ctx.textAlign = align; ctx.fillText(text, x, y);
+}
+function val(id) { return Number(document.getElementById(id).value); }
+function setText(id, text) { document.getElementById(id).textContent = text; }
+
+function update1() {
+  const x0 = val('p1Start'), x1 = val('p1End'), t = val('p1Time');
+  setText('p1StartVal', `${x0} m`); setText('p1EndVal', `${x1} m`); setText('p1TimeVal', `${t} s`);
+  const yMin = -50, yMax = 110;
+  const { ctx, W, H } = setupCanvas('c1');
+  const ax = drawAxes(ctx, W, H, { xMin: 0, xMax: 10, yMin, yMax, xLabel: 't (s)', yLabel: 'x (m)' });
+  drawLine(ctx, ax, [[0, x0], [t, x1]], COLORS.teal, 4);
+  drawDot(ctx, ax, 0, x0, '#94a3b8'); drawDot(ctx, ax, t, x1, COLORS.teal);
+  label(ctx, ax.X(t), ax.Y(x1) - 12, `(${t}s, ${x1}m)`, COLORS.teal);
+  const v = (x1 - x0) / t;
+  const direction = v > 0 ? 'positive direction' : v < 0 ? 'negative direction' : 'no motion';
+  setText('obs1', `Δx = ${x1 - x0} m and Δt = ${t} s, so velocity = ${(v).toFixed(2)} m/s. This means ${direction}.`);
+}
+function update2() {
+  const speed = val('p2Speed'); setText('p2SpeedVal', `${speed.toFixed(1)} m/s`);
+  const T = 10, xEnd = speed * T;
+  const yMin = 0, yMax = 160;
+  const { ctx, W, H } = setupCanvas('c2');
+  const ax = drawAxes(ctx, W, H, { xMin: 0, xMax: T, yMin, yMax, xLabel: 't (s)', yLabel: 'x (m)' });
+  drawLine(ctx, ax, [[0,0], [T, xEnd]], COLORS.amber, 4);
+  drawDot(ctx, ax, T, xEnd, COLORS.amber);
+  label(ctx, ax.X(T * 0.55), ax.Y(Math.max(xEnd, 1) * 0.55) - 12, `slope = ${speed.toFixed(1)} m/s`, COLORS.amber);
+  let desc = speed === 0 ? 'Speed is zero, so position does not change and the x–t line is horizontal.' : speed < 5 ? 'Low speed gives a gentle positive slope.' : speed < 10 ? 'Medium speed gives a clear positive slope.' : 'High speed gives a steep positive slope.';
+  setText('obs2', desc);
+}
+function update3() {
+  const u = val('p3u'), a = val('p3a'), T = 6;
+  setText('p3uVal', `${u.toFixed(1)} m/s`); setText('p3aVal', `${a.toFixed(2)} m/s²`);
+  const vEnd = u + a * T;
+  const yMin = -20, yMax = 45;
+  const { ctx, W, H } = setupCanvas('c3');
+  const ax = drawAxes(ctx, W, H, { xMin: 0, xMax: T, yMin, yMax, xLabel: 't (s)', yLabel: 'v (m/s)' });
+  drawLine(ctx, ax, [[0, u], [T, vEnd]], COLORS.coral, 4);
+  drawDot(ctx, ax, T, vEnd, COLORS.coral);
+  label(ctx, ax.X(T) - 6, ax.Y(vEnd) - 10, `v = ${vEnd.toFixed(1)} m/s`, COLORS.coral, 'right');
+  const type = a > 0 ? 'velocity increases' : a < 0 ? 'velocity decreases' : 'velocity stays constant';
+  setText('obs3', `Initial velocity u = ${u.toFixed(1)} m/s. Acceleration a = ${a.toFixed(2)} m/s², so ${type}. After ${T} s, v = ${vEnd.toFixed(1)} m/s.`);
+}
+function update4() {
+  const v = val('p4v'), t = val('p4t');
+  const shape = document.getElementById('p4shape').value;
+  setText('p4shapeVal', shape);
+  setText('p4vVal', `${v} m/s`); setText('p4tVal', `${t} s`);
+
+  const isTriangle = shape === 'triangle';
+  const disp = isTriangle ? 0.5 * v * t : v * t;
+  const dispText = Number.isInteger(disp) ? String(disp) : disp.toFixed(1);
+  document.getElementById('badge4').innerHTML = `Δx<br>${dispText} m`;
+
+  const yMin = -12, yMax = 14;
+  const { ctx, W, H } = setupCanvas('c4');
+  const ax = drawAxes(ctx, W, H, { xMin: 0, xMax: 10, yMin, yMax, xLabel: 't (s)', yLabel: 'v (m/s)' });
+  const color = v >= 0 ? COLORS.blue : COLORS.coral;
+  const fill = v >= 0 ? 'rgba(37,99,235,.24)' : 'rgba(239,68,68,.20)';
+
+  if (isTriangle) {
+    drawArea(ctx, ax, [[0, 0], [t, v]], fill);
+    drawLine(ctx, ax, [[0, 0], [t, v]], color, 4);
+    drawLine(ctx, ax, [[t, 0], [t, v]], COLORS.navy, 1.5);
+    label(ctx, ax.X(Math.max(t * 0.58, .8)), ax.Y(v * 0.42) - 8, `${dispText} m`, color);
+    setText('obs4', `Triangle area = ½ × base × height = ½ × ${t} s × ${v} m/s = ${dispText} m. This models velocity changing from 0 to ${v} m/s.`);
+  } else {
+    drawArea(ctx, ax, [[0, v], [t, v]], fill);
+    drawLine(ctx, ax, [[0, v], [t, v]], color, 4);
+    drawLine(ctx, ax, [[t, 0], [t, v]], COLORS.navy, 1.5);
+    label(ctx, ax.X(Math.max(t/2, .5)), ax.Y(v/2) - 8, `${dispText} m`, color);
+    setText('obs4', `Rectangle area = base × height = ${t} s × ${v} m/s = ${dispText} m. This models constant velocity.`);
+  }
+}
+
+const presets = [
+  { name: 'Preset A', obs: 'Forward, stopped, fast forward, then reverse.', v: [3, 0, 6, -4] },
+  { name: 'Preset B', obs: 'Forward motion with increasing speed each stage.', v: [1, 3, 5, 8] },
+  { name: 'Preset C', obs: 'Mostly negative motion, with one stopped stage.', v: [-2, -5, 0, -3] },
+  { name: 'Preset D', obs: 'Away from home, pause, then return.', v: [4, 0, -4, 0] }
+];
+const stageTimes = [3, 2, 3, 3];
+let selectedPreset = 0;
+function selectPreset(i, btn) {
+  selectedPreset = i;
+  document.querySelectorAll('.stage-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  presets[i].v.forEach((v, idx) => { document.getElementById('p5v' + (idx + 1)).value = v; });
+  update5();
+}
+function currentStoryFromSliders() {
+  return stageTimes.map((t, i) => {
+    const v = val('p5v' + (i + 1));
+    setText('p5v' + (i + 1) + 'Val', `${v} m/s`);
+    const labelText = v > 0 ? 'forward' : v < 0 ? 'reverse' : 'stopped';
+    return { t, v, label: labelText };
+  });
+}
+function buildStoryPoints(stages) {
+  let t = 0, x = 0;
+  const xPts = [[t, x]], vSegments = [], rows = [];
+  stages.forEach((s, i) => {
+    const startT = t;
+    t += s.t;
+    x += s.v * s.t;
+    xPts.push([t, x]);
+    vSegments.push([startT, t, s.v]);
+    rows.push({ stage: i + 1, label: s.label, time: `${startT}–${t} s`, v: s.v, dx: s.v * s.t, xFinal: x });
+  });
+  return { xPts, vSegments, rows, totalT: t };
+}
+function update5() {
+  const stages = currentStoryFromSliders();
+  const data = buildStoryPoints(stages);
+  const xMin = -60, xMax = 70;
+  const vMin = -10, vMax = 12;
+  {
+    const { ctx, W, H } = setupCanvas('c5x');
+    const ax = drawAxes(ctx, W, H, { xMin: 0, xMax: data.totalT, yMin: xMin, yMax: xMax, xLabel: 't (s)', yLabel: 'x (m)', pad: 42 });
+    drawLine(ctx, ax, data.xPts, COLORS.purple, 4);
+    data.xPts.forEach(([t,x]) => drawDot(ctx, ax, t, x, COLORS.purple));
+  }
+  {
+    const { ctx, W, H } = setupCanvas('c5v');
+    const ax = drawAxes(ctx, W, H, { xMin: 0, xMax: data.totalT, yMin: vMin, yMax: vMax, xLabel: 't (s)', yLabel: 'v (m/s)', pad: 42 });
+    ctx.strokeStyle = COLORS.amber; ctx.lineWidth = 4; ctx.lineCap = 'butt';
+    data.vSegments.forEach(([t0, t1, v]) => {
+      ctx.beginPath(); ctx.moveTo(ax.X(t0), ax.Y(v)); ctx.lineTo(ax.X(t1), ax.Y(v)); ctx.stroke();
+      ctx.setLineDash([4,4]); ctx.strokeStyle = 'rgba(23,35,61,.25)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(ax.X(t1), ax.Y(vMin)); ctx.lineTo(ax.X(t1), ax.Y(vMax)); ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = COLORS.amber; ctx.lineWidth = 4;
+    });
+  }
+  const table = document.getElementById('storyTable');
+  table.innerHTML = '<tr><th>Stage</th><th>Motion</th><th>Time</th><th>v</th><th>Δx</th><th>Final x</th></tr>' + data.rows.map(r => `<tr><td>${r.stage}</td><td>${r.label}</td><td>${r.time}</td><td>${r.v} m/s</td><td>${r.dx} m</td><td>${r.xFinal} m</td></tr>`).join('');
+  const finalX = data.rows.at(-1).xFinal;
+  const moving = stages.map(s => s.v).filter(v => v !== 0).length;
+  setText('obs5', `Slider story: ${moving} moving stage(s). Total displacement = ${finalX} m. Positive velocity makes the x–t graph rise; negative velocity makes it fall; zero velocity makes it flat.`);
+}
+
+function switchTab(n, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('p' + n).classList.add('active');
+  btn.classList.add('active');
+  setTimeout(renderActive, 60);
+}
+function renderActive() {
+  const id = document.querySelector('.panel.active')?.id;
+  if (id === 'p1') update1();
+  if (id === 'p2') update2();
+  if (id === 'p3') update3();
+  if (id === 'p4') update4();
+  if (id === 'p5') update5();
+}
+const explanations = {
+  q1: 'Slope on an x–t graph is Δx/Δt, which is velocity.', q2: 'Horizontal means the position value is not changing.', q3: 'Negative slope means position decreases with time.',
+  q4: 'Higher speed means more position change per second, so the slope is steeper.', q5: 'Zero speed means no change in position, so the graph is horizontal.', q6: 'Speed = 30 ÷ 6 = 5 m/s.',
+  q7: 'Slope on a v–t graph is Δv/Δt, which is acceleration.', q8: 'A downward slope means velocity is decreasing, so acceleration is negative.', q9: 'v = u + at = 0 + 3×4 = 12 m/s.',
+  q10: 'The area under a v–t graph represents displacement.', q11: 'Δx = vt = 8×5 = 40 m.', q12: 'Below the time axis gives negative area, so displacement is negative.',
+  q13: 'When v = 0, position is constant, so x–t is horizontal.', q14: 'Negative velocity is drawn below the time axis on a v–t graph.', q15: 'A steeper positive x–t slope means a larger positive velocity.'
+};
+function answer(qid, btn, correct) {
+  if (answered.has(qid)) return;
+  answered.add(qid);
+  btn.closest('.question').querySelectorAll('.q-option').forEach(b => b.disabled = true);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  if (correct) { score++; setText('score', String(score)); }
+  const fb = document.getElementById('fb-' + qid);
+  fb.className = 'feedback show ' + (correct ? 'ok' : 'no');
+  fb.textContent = (correct ? '✓ Correct. ' : '✗ Not quite. ') + explanations[qid];
+}
+window.addEventListener('load', () => setTimeout(() => { update1(); update2(); update3(); update4(); update5(); }, 120));
+window.addEventListener('resize', () => setTimeout(renderActive, 80));
+</script>
+
+<script>
+const PHYSICSFLOW_PASSWORD = "MOTION2026";
+
+function unlockApp(){
+  const input = document.getElementById("passwordInput").value.trim();
+  const error = document.getElementById("errorMsg");
+
+  if(input === PHYSICSFLOW_PASSWORD){
+    localStorage.setItem("physicsflow_motion_access","granted");
+    document.getElementById("passwordOverlay").style.display = "none";
+  } else {
+    error.style.display = "block";
+  }
+}
+
+window.addEventListener("load", () => {
+  const access = localStorage.getItem("physicsflow_motion_access");
+  if(access === "granted"){
+    document.getElementById("passwordOverlay").style.display = "none";
+  }
+
+  const passwordInput = document.getElementById("passwordInput");
+  if(passwordInput){
+    passwordInput.addEventListener("keypress", function(e){
+      if(e.key === "Enter"){
+        unlockApp();
+      }
+    });
+  }
+});
+</script>
+
+</body>
+</html>
